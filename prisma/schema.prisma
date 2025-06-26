@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model Cliente {
+  id               Int       @id @default(autoincrement())
+  nome             String
+  email            String    @unique
+  senha            String
+  telefone         String?
+  endereco         String?
+  emailVerificado  Boolean   @default(false)
+  emailToken       String?   @unique
+  emailTokenExpira DateTime?
+  resetToken       String?   @unique
+  resetTokenExpira DateTime?
+  createdAt        DateTime  @default(now()) // ✅ Data de cadastro
+  updatedAt        DateTime  @updatedAt
+  interacoes       Interacao[]
+
+  @@map("clientes")
+}
+
+model Admin {
+  id               Int         @id @default(autoincrement())
+  nome             String
+  email            String      @unique
+  senha            String?     // Opcional para convites pendentes
+  nivelAcesso      NivelAcesso @default(EDITOR)
+  ultimoLogin      DateTime?
+  ultimoLogout     DateTime?
+  emailVerificado  Boolean     @default(false)
+  emailToken       String?     @unique
+  emailTokenExpira DateTime?
+  conviteEnviado   Boolean     @default(false)
+  conviteAceito    Boolean     @default(false)
+  senhaDefinida    Boolean     @default(false)
+  tokenConfirmacao String?     @unique
+  tokenExpiracao   DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@map("admins")
+}
+
+model Produto {
+  id            Int         @id @default(autoincrement())
+  nome          String
+  descricao     String?
+  preco         Decimal     @db.Decimal(10, 2)
+  categoria     String?
+  tamanhos      String?
+  cores         String?
+  imagemUrl     String?
+  imagens       String[]
+  disponivel    Boolean     @default(true)
+  destaque      Boolean     @default(false)
+  estoque       Int         @default(0)
+  createdAt     DateTime    @default(now()) // ✅ Data de cadastro
+  updatedAt     DateTime    @updatedAt
+  interacoes    Interacao[]
+
+  @@map("produtos")
+}
+
+model Interacao {
+  id        Int      @id @default(autoincrement())
+  tipo      String
+  conteudo  String?
+  nota      Int?
+  avaliacao Int?     // ✅ Campo de avaliação (1-5 estrelas)
+  createdAt DateTime @default(now()) // ✅ Data da interação
+  clienteId Int
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  produtoId Int
+  produto   Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@index([produtoId])
+  @@index([clienteId])
+  @@index([createdAt]) // ✅ Índice para consultas por data
+  @@map("Interacao")
+}
+
+enum NivelAcesso {
+  SUPERADMIN
+  ADMIN
+  EDITOR
+}
+
+enum TipoInteracao {
+  CURTIDA
+  COMENTARIO
+  COMPARTILHAMENTO
+  COMPRA
+  VISUALIZACAO
+  AVALIACAO
+}
