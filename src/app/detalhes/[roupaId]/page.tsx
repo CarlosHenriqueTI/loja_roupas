@@ -76,13 +76,13 @@ interface CarrinhoItem {
 // CONSTANTS
 // ============================================================================
 const PLACEHOLDER_IMAGE = '/placeholder-product.jpg';
-const TOAST_DEBOUNCE_TIME = 500;
+const TOAST_DEBOUNCE_TIME = 1000;
 const TOAST_DURATIONS = {
-  loading: 10000,
-  success: 3000,
-  error: 5000,
+  loading: 0, // ✅ Sem timeout para loading
+  success: 4000,
+  error: 6000,
   warning: 4000,
-  info: 2000
+  info: 3000
 } as const;
 
 const BENEFITS = [
@@ -125,11 +125,18 @@ const formatDate = (dateString: string): string => {
 };
 
 // ============================================================================
-// CUSTOM HOOKS
+// CUSTOM HOOKS - ✅ CORRIGIDO
 // ============================================================================
 const useToastManager = () => {
   const toastRefs = useRef<{ [key: string]: string | number }>({});
   const lastActionTime = useRef<{ [key: string]: number }>({});
+
+  const dismissToast = useCallback((key: string) => {
+    if (toastRefs.current[key]) {
+      toast.dismiss(toastRefs.current[key]);
+      delete toastRefs.current[key];
+    }
+  }, []);
 
   const showToast = useCallback((
     type: keyof typeof TOAST_DURATIONS, 
@@ -140,21 +147,19 @@ const useToastManager = () => {
   ) => {
     const now = Date.now();
     if (lastActionTime.current[key] && (now - lastActionTime.current[key]) < TOAST_DEBOUNCE_TIME) {
-      return;
+      return toastRefs.current[key];
     }
     lastActionTime.current[key] = now;
 
-    if (toastRefs.current[key]) {
-      toast.dismiss(toastRefs.current[key]);
-      delete toastRefs.current[key];
-    }
+    // ✅ SEMPRE limpar toast anterior primeiro
+    dismissToast(key);
 
     let toastId: string | number;
     const duration = TOAST_DURATIONS[type];
     
     switch (type) {
       case 'loading':
-        toastId = toast.loading(title, { description });
+        toastId = toast.loading(title, { description, duration: undefined });
         break;
       case 'success':
         toastId = toast.success(title, { description, duration, action });
@@ -174,23 +179,27 @@ const useToastManager = () => {
     
     toastRefs.current[key] = toastId;
     
-    setTimeout(() => {
-      if (toastRefs.current[key] === toastId) {
-        delete toastRefs.current[key];
-      }
-    }, duration);
+    // ✅ Auto-cleanup apenas para toasts não-loading
+    if (type !== 'loading' && duration > 0) {
+      setTimeout(() => {
+        if (toastRefs.current[key] === toastId) {
+          delete toastRefs.current[key];
+        }
+      }, duration + 500);
+    }
     
     return toastId;
-  }, []);
+  }, [dismissToast]);
 
-  const clearToasts = useCallback(() => {
+  const clearAllToasts = useCallback(() => {
     Object.values(toastRefs.current).forEach(toastId => {
       toast.dismiss(toastId);
     });
     toastRefs.current = {};
+    lastActionTime.current = {};
   }, []);
 
-  return { showToast, clearToasts };
+  return { showToast, dismissToast, clearAllToasts };
 };
 
 const useProductImages = (produto: Produto | null) => {
@@ -842,7 +851,7 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
   const roupaId = resolvedParams.roupaId;
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
-  const { showToast, clearToasts } = useToastManager();
+  const { showToast, dismissToast, clearAllToasts } = useToastManager();
   
   // Estados principais
   const [produto, setProduto] = useState<Produto | null>(null);
@@ -874,17 +883,24 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
     setMounted(true);
   }, []);
 
+  // ✅ FETCH DADOS CORRIGIDO
   const fetchDados = useCallback(async () => {
-    showToast('loading', 'fetchData', "Carregando produto...", "Buscando informações do produto");
-
+    const loadingKey = 'loadingProduct';
+    
     try {
       setPageLoading(true);
       setError(null);
+
+      // ✅ Mostrar loading apenas uma vez
+      showToast('loading', loadingKey, "Carregando produto...", "Buscando informações do produto");
 
       const [produtoData, interacoesData] = await Promise.all([
         fetchProduto(roupaId),
         fetchInteracoes(roupaId)
       ]);
+
+      // ✅ SEMPRE dismiss loading ANTES de success
+      dismissToast(loadingKey);
 
       setProduto(produtoData);
       setInteracoes(interacoesData);
@@ -896,20 +912,26 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
       if (tamanhos.length > 0) setTamanhoSelecionado(tamanhos[0]);
       if (cores.length > 0) setCorSelecionada(cores[0]);
 
-      showToast('success', 'fetchData', "Produto carregado!", `${produtoData.nome} está pronto para visualização`);
+      // ✅ Success com chave diferente
+      showToast('success', 'productLoaded', "Produto carregado!", `${produtoData.nome} carregado com sucesso`);
+      
     } catch (err) {
+      // ✅ SEMPRE dismiss loading ANTES de error
+      dismissToast(loadingKey);
+      
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar produto';
       setError(errorMessage);
-      showToast('error', 'fetchData', "Erro ao carregar produto", errorMessage, {
+      
+      showToast('error', 'productError', "Erro ao carregar produto", errorMessage, {
         label: "Tentar novamente",
         onClick: () => fetchDados()
       });
     } finally {
       setPageLoading(false);
     }
-  }, [roupaId, showToast]);
+  }, [roupaId, showToast, dismissToast]);
 
-  // Event handlers
+  // ✅ EVENT HANDLERS CORRIGIDOS
   const handleQuantidadeChange = useCallback((delta: number) => {
     setQuantidade(prev => {
       const nova = prev + delta;
@@ -917,9 +939,9 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
       
       if (quantidadeFinal !== prev) {
         if (nova > (produto?.estoque || 1)) {
-          showToast('warning', 'quantidade', "Estoque limitado", `Apenas ${produto?.estoque} unidades disponíveis`);
+          showToast('warning', 'quantityWarning', "Estoque limitado", `Apenas ${produto?.estoque} unidades disponíveis`);
         } else if (nova < 1) {
-          showToast('info', 'quantidade', "Quantidade mínima", "A quantidade mínima é 1 unidade");
+          showToast('info', 'quantityInfo', "Quantidade mínima", "A quantidade mínima é 1 unidade");
         }
       }
       
@@ -931,12 +953,12 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
     if (!produto) return;
     
     if (tamanhosSeguros.length > 0 && !tamanhoSelecionado) {
-      showToast('error', 'carrinho', "Selecione um tamanho", "É necessário escolher um tamanho antes de adicionar ao carrinho");
+      showToast('error', 'sizeRequired', "Selecione um tamanho", "É necessário escolher um tamanho antes de adicionar ao carrinho");
       return;
     }
     
     if (coresSeguros.length > 0 && !corSelecionada) {
-      showToast('error', 'carrinho', "Selecione uma cor", "É necessário escolher uma cor antes de adicionar ao carrinho");
+      showToast('error', 'colorRequired', "Selecione uma cor", "É necessário escolher uma cor antes de adicionar ao carrinho");
       return;
     }
     
@@ -950,7 +972,7 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
       imagemUrl: imagensProduto[0]
     };
     
-    showToast('success', 'carrinho', "Produto adicionado ao carrinho! 🛒", 
+    showToast('success', 'cartAdded', "Produto adicionado ao carrinho! 🛒", 
       `${quantidade} unidade(s) de "${produto.nome}" ${tamanhoSelecionado ? `(${tamanhoSelecionado})` : ''} ${corSelecionada ? `- ${corSelecionada}` : ''}`,
       {
         label: "Ver carrinho",
@@ -964,7 +986,7 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
     setIsFavorito(novoStatus);
     
     if (novoStatus) {
-      showToast('success', 'favoritos', "Adicionado aos favoritos! ❤️", 
+      showToast('success', 'favoriteAdded', "Adicionado aos favoritos! ❤️", 
         `${produto?.nome} foi salvo na sua lista de favoritos`,
         {
           label: "Ver favoritos",
@@ -972,18 +994,19 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
         }
       );
     } else {
-      showToast('info', 'favoritos', "Removido dos favoritos", `${produto?.nome} foi removido da sua lista de favoritos`);
+      showToast('info', 'favoriteRemoved', "Removido dos favoritos", `${produto?.nome} foi removido da sua lista de favoritos`);
     }
   }, [isFavorito, produto?.nome, router, showToast]);
 
+  // ✅ COMENTÁRIO CORRIGIDO
   const handleEnviarComentario = useCallback(async () => {
     if (!novoComentario.trim() || !produto) {
-      showToast('error', 'comentario', "Comentário vazio", "Por favor, escreva um comentário antes de enviar");
+      showToast('error', 'commentEmpty', "Comentário vazio", "Por favor, escreva um comentário antes de enviar");
       return;
     }
     
     if (!isAuthenticated || !user) {
-      showToast('error', 'comentario', "Login necessário", "Você precisa estar logado para enviar um comentário",
+      showToast('error', 'commentAuth', "Login necessário", "Você precisa estar logado para enviar um comentário",
         {
           label: "Fazer login",
           onClick: () => router.push('/clientes/login')
@@ -992,14 +1015,17 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
       return;
     }
     
+    const loadingKey = 'commentSubmit';
     setComentarioLoading(true);
-    showToast('loading', 'comentario', "Enviando comentário...", "Aguarde enquanto processamos sua avaliação");
+    
+    // ✅ Loading com chave específica
+    showToast('loading', loadingKey, "Enviando comentário...", "Aguarde enquanto processamos sua avaliação");
 
     try {
       const novaInteracaoData = await createInteracao({
         tipo: 'comentario',
         conteudo: novoComentario,
-        clienteId: parseInt(user.id.toString()), // ✅ Fixed type conversion
+        clienteId: parseInt(user.id.toString()),
         produtoId: produto.id,
         nota: avaliacao > 0 ? avaliacao : undefined
       });
@@ -1007,21 +1033,28 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
       const novaInteracao: Interacao = {
         ...novaInteracaoData,
         cliente: {
-          id: parseInt(user.id.toString()), // ✅ Fixed type conversion
+          id: parseInt(user.id.toString()),
           nome: user.nome,
           email: user.email
         }
       };
       
+      // ✅ SEMPRE dismiss loading ANTES de success
+      dismissToast(loadingKey);
+      
       setInteracoes(prev => [novaInteracao, ...prev]);
       setNovoComentario("");
       setAvaliacao(0);
       
-      showToast('success', 'comentario', "Comentário enviado com sucesso! 🎉", 
+      showToast('success', 'commentSuccess', "Comentário enviado com sucesso! 🎉", 
         `Obrigado pela sua ${avaliacao > 0 ? `avaliação de ${avaliacao} estrelas e ` : ''}opinião sobre ${produto.nome}`
       );
+      
     } catch (error) {
-      showToast('error', 'comentario', "Erro ao enviar comentário", 
+      // ✅ SEMPRE dismiss loading ANTES de error
+      dismissToast(loadingKey);
+      
+      showToast('error', 'commentError', "Erro ao enviar comentário", 
         error instanceof Error ? error.message : "Tente novamente em alguns instantes",
         {
           label: "Tentar novamente",
@@ -1031,16 +1064,21 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
     } finally {
       setComentarioLoading(false);
     }
-  }, [novoComentario, produto, avaliacao, isAuthenticated, user, router, showToast]);
+  }, [novoComentario, produto, avaliacao, isAuthenticated, user, router, showToast, dismissToast]);
 
   // Effects
   useEffect(() => {
-    fetchDados();
-  }, [fetchDados]);
+    if (mounted) {
+      fetchDados();
+    }
+  }, [mounted, fetchDados]);
 
+  // ✅ CLEANUP MELHORADO
   useEffect(() => {
-    return () => clearToasts();
-  }, [clearToasts]);
+    return () => {
+      clearAllToasts();
+    };
+  }, [clearAllToasts]);
 
   // Show loading while mounting to prevent hydration issues
   if (!mounted) {
