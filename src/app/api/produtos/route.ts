@@ -1,9 +1,7 @@
 // filepath: loja_roupas/src/app/api/produtos/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma"; // ✅ Use a instância global
 
 // Configurar Cloudinary (se você usar)
 cloudinary.config({
@@ -37,6 +35,8 @@ async function uploadToCloudinary(fileBuffer: Buffer, fileName: string, folder: 
 // GET - Listar produtos
 export async function GET(request: NextRequest) {
   try {
+    console.log("🛍️ Buscando produtos...");
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
@@ -90,6 +90,8 @@ export async function GET(request: NextRequest) {
       totalInteracoes: produto._count.interacoes
     }));
 
+    console.log(`✅ ${produtos.length} produtos encontrados`);
+
     return NextResponse.json({
       success: true,
       data: produtosFormatados,
@@ -104,13 +106,12 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro ao buscar produtos:', error);
+    console.error('❌ Erro ao buscar produtos:', error);
     return NextResponse.json({
       success: false,
-      error: 'Erro interno do servidor'
+      error: 'Erro interno do servidor',
+      message: error instanceof Error ? error.message : "Erro desconhecido"
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -221,7 +222,5 @@ export async function POST(request: NextRequest) {
       success: false,
       error: 'Erro interno do servidor'
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

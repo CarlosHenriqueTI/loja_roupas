@@ -44,10 +44,10 @@ export default function Footer() {
           <div className="lg:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
+                <span className="text-white font-bold text-lg">UI</span>
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                ModaStyle
+                Urban Icon
               </span>
             </div>
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
@@ -147,7 +147,7 @@ export default function Footer() {
               <div className="flex items-center space-x-3">
                 <Mail className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                 <span className="text-gray-600 dark:text-gray-400 text-sm">
-                  contato@modastyle.com
+                  contato@UrbanIcon.com
                 </span>
               </div>
             </div>
@@ -158,7 +158,7 @@ export default function Footer() {
         <div className="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center">
             <p className="text-gray-600 dark:text-gray-400 text-sm">
-              © 2024 ModaStyle. Todos os direitos reservados.
+              © 2024 Urban Icon. Todos os direitos reservados.
             </p>
             <div className="flex items-center space-x-1 mt-4 sm:mt-0">
               <span className="text-gray-600 dark:text-gray-400 text-sm">

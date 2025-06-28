@@ -70,14 +70,10 @@ export async function GET(request: NextRequest) {
             gte: dataInicio
           }
         },
-        include: {
+        select: { 
+          tipo: true,
+          createdAt: true,
           produto: {
-            select: {
-              id: true,
-              nome: true
-            }
-          },
-          cliente: {
             select: {
               id: true,
               nome: true

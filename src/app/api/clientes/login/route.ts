@@ -1,10 +1,8 @@
 // filepath: src/app/api/clientes/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from "@/lib/prisma"; // ✅ Use a instância global
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +44,7 @@ export async function POST(request: NextRequest) {
         senha: true,
         telefone: true,
         endereco: true,
+        emailVerificado: true, // ✅ Adicione este campo
         createdAt: true,
         updatedAt: true
       }
@@ -59,6 +58,19 @@ export async function POST(request: NextRequest) {
           error: 'Email ou senha incorretos' 
         },
         { status: 401 }
+      );
+    }
+
+    // ✅ VERIFICAR SE O EMAIL FOI CONFIRMADO
+    if (!cliente.emailVerificado) {
+      console.log('❌ Email não confirmado para:', email);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.',
+          needsEmailConfirmation: true // ✅ Flag para o front identificar
+        },
+        { status: 403 }
       );
     }
 
@@ -92,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Login bem-sucedido para:', cliente.nome);
 
-    // ✅ Retornar estrutura padronizada
+    // Retornar estrutura padronizada
     return NextResponse.json({
       success: true,
       message: 'Login realizado com sucesso',
@@ -111,7 +123,6 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
+  // ❌ REMOVA o finally com prisma.$disconnect()
 }

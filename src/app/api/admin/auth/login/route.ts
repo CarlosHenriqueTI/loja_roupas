@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         email: admin.email,
         nivelAcesso: admin.nivelAcesso
       },
-      process.env.JWT_SECRET || 'modastyle-admin-secret',
+      process.env.JWT_SECRET || 'Urban Icon-admin-secret',
       { 
         expiresIn: '7d' // Token válido por 7 dias
       }

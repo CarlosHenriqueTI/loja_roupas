@@ -270,7 +270,7 @@ const HeroSection = () => (
     <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">
       <div className="text-center">
         <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight mb-6 animate-fadeIn">
-          Sobre a <span className="text-yellow-300">ModaStyle</span>
+          Sobre a <span className="text-yellow-300">Urban Icon</span>
         </h1>
         <p className="text-xl sm:text-2xl mb-8 font-light max-w-3xl mx-auto opacity-90">
           Uma história de paixão pela moda e inovação
@@ -304,7 +304,7 @@ const HistoriaSection = () => (
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="space-y-6">
           <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-            Fundada em 2020, a <strong className="text-purple-600 dark:text-purple-400">ModaStyle</strong> nasceu da paixão por democratizar a moda de qualidade. 
+            Fundada em 2020, a <strong className="text-purple-600 dark:text-purple-400">Urban Icon</strong> nasceu da paixão por democratizar a moda de qualidade. 
             Nossa jornada começou com uma simples missão: oferecer roupas elegantes e acessíveis 
             para pessoas que valorizam estilo e autenticidade.
           </p>
@@ -433,7 +433,7 @@ export default function Sobre() {
 
         <GridSection
           title="Nossa Equipe"
-          subtitle="Conheça as mentes criativas por trás da ModaStyle"
+          subtitle="Conheça as mentes criativas por trás da Urban Icon"
           data={EQUIPE_DATA}
           renderItem={renderMembro}
         />

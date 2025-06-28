@@ -5,48 +5,40 @@ export async function POST(request: NextRequest) {
   try {
     const { tipo, conteudo, clienteId, produtoId, nota } = await request.json();
 
-    // Validações básicas
-    if (!tipo || !clienteId || !produtoId) {
+    // Só permite COMENTARIO ou AVALIACAO
+    const tipoNormalizado = (tipo || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (tipoNormalizado !== "COMENTARIO" && tipoNormalizado !== "AVALIACAO") {
       return NextResponse.json(
-        { success: false, error: "Tipo, clienteId e produtoId são obrigatórios" },
+        { success: false, error: "Só é permitido COMENTARIO ou AVALIACAO" },
         { status: 400 }
       );
     }
 
-    // Validar nota se fornecida
-    if (nota !== undefined && nota !== null) {
-      if (typeof nota !== 'number' || nota < 1 || nota > 5) {
-        return NextResponse.json(
-          { success: false, error: "Nota deve ser um número entre 1 e 5" },
-          { status: 400 }
-        );
-      }
+    // Comentário precisa de texto, avaliação precisa de nota
+    if (tipoNormalizado === "COMENTARIO" && (!conteudo || !conteudo.trim())) {
+      return NextResponse.json(
+        { success: false, error: "Comentário não pode ser vazio" },
+        { status: 400 }
+      );
+    }
+    if (tipoNormalizado === "AVALIACAO" && (typeof nota !== 'number' || nota < 1 || nota > 5)) {
+      return NextResponse.json(
+        { success: false, error: "Avaliação deve ser um número entre 1 e 5" },
+        { status: 400 }
+      );
     }
 
     const interacao = await prisma.interacao.create({
       data: {
-        tipo,
+        tipo: tipoNormalizado,
         conteudo: conteudo || null,
         clienteId: Number(clienteId),
         produtoId: Number(produtoId),
-        nota: nota ? Number(nota) : null,
-        // createdAt é automático, não precisa ser definido
+        nota: tipoNormalizado === "AVALIACAO" ? Number(nota) : null,
       },
       include: {
-        cliente: {
-          select: {
-            id: true,
-            nome: true,
-            email: true
-          }
-        },
-        produto: {
-          select: {
-            id: true,
-            nome: true,
-            imagemUrl: true
-          }
-        }
+        cliente: { select: { id: true, nome: true, email: true } },
+        produto: { select: { id: true, nome: true, imagemUrl: true } }
       }
     });
 

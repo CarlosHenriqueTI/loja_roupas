@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     try {
       const decoded = jwt.verify(
         token, 
-        process.env.JWT_SECRET || 'modastyle-admin-secret'
+        process.env.JWT_SECRET || 'Urban Icon-admin-secret'
       ) as { adminId: number };
 
       console.log('🔐 Logout do admin ID:', decoded.adminId);

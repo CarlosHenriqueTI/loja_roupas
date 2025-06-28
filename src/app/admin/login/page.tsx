@@ -124,7 +124,7 @@ export default function AdminLogin() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="admin@modastyle.com"
+                  placeholder="admin@urbanicon.com"
                   required
                 />
               </div>

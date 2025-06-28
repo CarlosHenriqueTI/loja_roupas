@@ -27,7 +27,7 @@ export async function verifyAdminToken(request: Request): Promise<{
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || 'modastyle-admin-secret'
+      process.env.JWT_SECRET || 'Urban Icon-admin-secret'
     ) as AdminPayload;
 
     // Verificar se admin ainda existe

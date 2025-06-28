@@ -134,7 +134,7 @@ export default function LoginPage() {
               Bem-vindo de volta!
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              Entre em sua conta ModaStyle
+              Entre em sua conta Urban Icon
             </p>
           </div>
 

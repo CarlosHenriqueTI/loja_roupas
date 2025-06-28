@@ -709,22 +709,10 @@ const CommentForm = ({
 }) => (
   <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-8 mb-8">
     <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-      Deixe sua avaliação
+      Deixe seu comentário
     </h3>
     
     <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-          Sua avaliação
-        </label>
-        <div className="flex items-center gap-4">
-          <StarRating rating={rating} onRatingChange={onRatingChange} size="lg" />
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {rating > 0 ? `${rating}/5 estrelas` : 'Clique para avaliar'}
-          </span>
-        </div>
-      </div>
-
       <div>
         <label htmlFor="comentario" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
           Seu comentário
@@ -871,6 +859,14 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
   const [novoComentario, setNovoComentario] = useState("");
   const [avaliacao, setAvaliacao] = useState(0);
   const [comentarioLoading, setComentarioLoading] = useState(false);
+
+  // Novos estados para avaliações e comentários separados
+  const [avaliacoesList, setAvaliacoesList] = useState<Interacao[]>([]);
+  const [comentariosList, setComentariosList] = useState<Interacao[]>([]);
+
+  const [showAvaliacaoModal, setShowAvaliacaoModal] = useState(false);
+  const [avaliacaoNota, setAvaliacaoNota] = useState(0);
+  const [avaliacaoLoading, setAvaliacaoLoading] = useState(false);
 
   // Computed values
   const imagensProduto = useProductImages(produto);
@@ -1080,6 +1076,16 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
     };
   }, [clearAllToasts]);
 
+  // Separe avaliações e comentários
+  useEffect(() => {
+    setAvaliacoesList(
+      interacoes.filter(i => i.nota && i.nota > 0)
+    );
+    setComentariosList(
+      interacoes.filter(i => !i.nota || i.nota === 0)
+    );
+  }, [interacoes]);
+
   // Show loading while mounting to prevent hydration issues
   if (!mounted) {
     return <Loading message="Carregando produto..." size="lg" fullScreen />;
@@ -1140,14 +1146,34 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
         <section className="border-t border-gray-200 dark:border-gray-700 pt-16">
           <header className="mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-3">
-              <MessageSquare className="h-8 w-8 text-purple-600" />
-              Avaliações e Comentários
+              <Star className="h-8 w-8 text-yellow-500" />
+              Avaliações
               <span className="text-lg font-normal text-gray-500 dark:text-gray-400">
-                ({interacoes.length})
+                ({avaliacoesList.length})
+              </span>
+            </h2>
+            {/* Botão para avaliar produto */}
+            {isAuthenticated && user && (
+              <button
+                onClick={() => setShowAvaliacaoModal(true)}
+                className="mb-8 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white rounded-xl font-medium transition-all shadow-lg"
+              >
+                <Star className="h-5 w-5" />
+                Avaliar Produto
+              </button>
+            )}
+          </header>
+          <CommentsList interacoes={avaliacoesList} />
+
+          <header className="mb-12 mt-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-3">
+              <MessageSquare className="h-8 w-8 text-purple-600" />
+              Comentários
+              <span className="text-lg font-normal text-gray-500 dark:text-gray-400">
+                ({comentariosList.length})
               </span>
             </h2>
           </header>
-
           {isAuthenticated && user ? (
             <CommentForm
               onSubmit={handleEnviarComentario}
@@ -1179,10 +1205,56 @@ export default function DetalhesProduto({ params }: ProdutoPageProps) {
               </div>
             </div>
           )}
-
-          <CommentsList interacoes={interacoes} />
+          <CommentsList interacoes={comentariosList} />
         </section>
       </div>
+
+      {showAvaliacaoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Avalie este produto</h3>
+            <div className="flex items-center justify-center mb-6">
+              <StarRating rating={avaliacaoNota} onRatingChange={setAvaliacaoNota} size="lg" />
+              <span className="ml-4 text-lg text-gray-700 dark:text-gray-200">{avaliacaoNota > 0 ? `${avaliacaoNota}/5` : ''}</span>
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={async () => {
+                  if (avaliacaoNota < 1) return;
+                  setAvaliacaoLoading(true);
+                  try {
+                    const novaInteracaoData = await createInteracao({
+                      tipo: 'avaliacao',
+                      conteudo: '',
+                      clienteId: parseInt(user.id.toString()),
+                      produtoId: produto.id,
+                      nota: avaliacaoNota
+                    });
+                    setInteracoes(prev => [novaInteracaoData, ...prev]);
+                    setShowAvaliacaoModal(false);
+                    setAvaliacaoNota(0);
+                    showToast('success', 'avaliacaoSuccess', "Avaliação enviada!", "Obrigado por avaliar o produto!");
+                  } catch (error) {
+                    showToast('error', 'avaliacaoError', "Erro ao enviar avaliação", error instanceof Error ? error.message : "Tente novamente");
+                  } finally {
+                    setAvaliacaoLoading(false);
+                  }
+                }}
+                disabled={avaliacaoNota < 1 || avaliacaoLoading}
+                className="flex-1 px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold transition-all disabled:opacity-50"
+              >
+                {avaliacaoLoading ? "Enviando..." : "Enviar Avaliação"}
+              </button>
+              <button
+                onClick={() => setShowAvaliacaoModal(false)}
+                className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

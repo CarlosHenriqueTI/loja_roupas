@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Detalhes do Produto - ModaStyle",
+  title: "Detalhes do Produto - Urban Icon",
   description: "Veja todos os detalhes do produto selecionado.",
 };
 

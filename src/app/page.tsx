@@ -107,7 +107,7 @@ function CardProduto({ produto }: { produto: Produto }) {
               <div className="text-center">
                 <ShoppingCart className="h-12 w-12 text-purple-400 mx-auto mb-2" />
                 <span className="text-purple-600 dark:text-purple-400 text-sm font-medium">
-                  ModaStyle
+                  Urban Icon
                 </span>
                 <div className="text-xs text-purple-500 dark:text-purple-400 mt-1">
                   {produto.nome.substring(0, 20)}...
@@ -294,7 +294,7 @@ function FeatureSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Por que escolher a <span className="text-purple-600">ModaStyle</span>?
+            Por que escolher a <span className="text-purple-600">Urban Icon</span>?
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Mais do que roupas, oferecemos uma experiência completa de moda e estilo

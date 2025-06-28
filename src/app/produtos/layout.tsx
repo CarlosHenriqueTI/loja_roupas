@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Produtos - ModaStyle",
+  title: "Produtos - Urban Icon",
   description: "Explore nossa coleção completa de roupas premium com as últimas tendências da moda.",
 };
 

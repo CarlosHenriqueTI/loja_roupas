@@ -62,7 +62,7 @@ const INITIAL_FILTERS: FiltrosState = {
   sortBy: "nome"
 };
 
-const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x400/8B5CF6/FFFFFF?text=ModaStyle';
+const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x400/8B5CF6/FFFFFF?text=Urban Icon';
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -183,7 +183,7 @@ const ProductPlaceholder = ({ size = 'large' }: { size?: 'small' | 'large' }) =>
       <div className="text-center">
         <ShoppingCart className={`${iconSize} text-purple-400 mx-auto mb-2`} />
         <span className={`text-purple-600 dark:text-purple-400 ${textSize} font-medium`}>
-          ModaStyle
+          Urban Icon
         </span>
       </div>
     </div>

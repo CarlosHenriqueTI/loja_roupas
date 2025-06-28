@@ -129,7 +129,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
               {sidebarOpen && (
                 <div className="ml-3">
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">ModaStyle</h1>
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">Urban Icon</h1>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Admin Panel</p>
                 </div>
               )}

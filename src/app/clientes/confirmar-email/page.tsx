@@ -85,7 +85,7 @@ export default function ConfirmarEmail() {
               </p>
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
                 <p className="text-green-700 dark:text-green-300 text-sm">
-                  <strong>🎉 Parabéns!</strong> Agora você pode fazer login e aproveitar todas as funcionalidades da ModaStyle.
+                  <strong>🎉 Parabéns!</strong> Agora você pode fazer login e aproveitar todas as funcionalidades da Urban Icon.
                 </p>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">

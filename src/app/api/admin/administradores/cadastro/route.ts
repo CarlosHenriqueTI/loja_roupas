@@ -26,7 +26,7 @@ async function enviarEmailConfirmacao(email: string, nome: string, token: string
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Confirmação de Conta - ModaStyle</title>
+      <title>Confirmação de Conta - Urban Icon</title>
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -71,12 +71,12 @@ async function enviarEmailConfirmacao(email: string, nome: string, token: string
     <body>
       <div class="container">
         <div class="header">
-          <h1>🛍️ ModaStyle</h1>
+          <h1>🛍️ Urban Icon</h1>
           <h2>Bem-vindo ao Sistema Administrativo!</h2>
         </div>
         <div class="content">
           <h3>Olá, ${nome}!</h3>
-          <p>Sua conta de administrador foi criada com sucesso no sistema ModaStyle.</p>
+          <p>Sua conta de administrador foi criada com sucesso no sistema Urban Icon.</p>
           <p>Para ativar sua conta e definir sua senha, clique no botão abaixo:</p>
           
           <div style="text-align: center;">
@@ -105,7 +105,7 @@ async function enviarEmailConfirmacao(email: string, nome: string, token: string
           </p>
         </div>
         <div class="footer">
-          <p>© ${new Date().getFullYear()} ModaStyle - Sistema Administrativo</p>
+          <p>© ${new Date().getFullYear()} Urban Icon - Sistema Administrativo</p>
           <p>Este é um email automático, não responda.</p>
         </div>
       </div>
@@ -114,9 +114,9 @@ async function enviarEmailConfirmacao(email: string, nome: string, token: string
   `;
 
   await transporter.sendMail({
-    from: `"ModaStyle Admin" <${process.env.SMTP_USER}>`,
+    from: `"Urban Icon Admin" <${process.env.SMTP_USER}>`,
     to: email,
-    subject: '🔐 Confirme sua conta de administrador - ModaStyle',
+    subject: '🔐 Confirme sua conta de administrador - Urban Icon',
     html: htmlContent,
   });
 }

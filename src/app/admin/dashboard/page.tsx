@@ -385,7 +385,7 @@ export default function AdminDashboard() {
               Bem-vindo, {admin?.nome}! 👋
             </h1>
             <p className="text-purple-100 text-lg">
-              Aqui estão os dados da sua loja ModaStyle
+              Aqui estão os dados da sua loja Urban Icon
             </p>
             <p className="text-purple-200 text-sm mt-2">
               📊 Última atualização: {formatDate(dashboardData.dataAtualizacao)}

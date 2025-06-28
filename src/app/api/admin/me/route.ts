@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authorization.split(' ')[1];
-    const JWT_SECRET = process.env.JWT_SECRET || 'modastyle-admin-secret';
+    const JWT_SECRET = process.env.JWT_SECRET || 'Urban Icon-admin-secret';
 
     // Verificar e decodificar o token
     const decoded = jwt.verify(token, JWT_SECRET) as any;

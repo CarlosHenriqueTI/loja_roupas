@@ -276,14 +276,14 @@ export default function AdminRelatorios() {
         'Preparando arquivo para download');
 
       const dataAtual = new Date();
-      const nomeArquivo = `relatorio_modastyle_${filtros.periodo}_${dataAtual.toISOString().split('T')[0]}`;
+      const nomeArquivo = `relatorio_Urban Icon_${filtros.periodo}_${dataAtual.toISOString().split('T')[0]}`;
 
       // ✅ Pequeno delay para mostrar o loading
       await new Promise(resolve => setTimeout(resolve, 500));
 
       if (formato === "csv") {
         // ✅ GERAR CSV REAL
-        let csvContent = `"Relatório ModaStyle - ${formatarPeriodo(filtros.periodo)}"\n`;
+        let csvContent = `"Relatório Urban Icon - ${formatarPeriodo(filtros.periodo)}"\n`;
         csvContent += `"Data de Exportação","${dataAtual.toLocaleDateString('pt-BR')}"\n`;
         csvContent += `"Período","${formatarPeriodo(filtros.periodo)}"\n\n`;
 
@@ -346,7 +346,7 @@ export default function AdminRelatorios() {
 
       } else if (formato === "excel") {
         // ✅ GERAR ARQUIVO EXCEL (TSV para compatibilidade)
-        let tsvContent = `Relatório ModaStyle - ${formatarPeriodo(filtros.periodo)}\t\t\t\n`;
+        let tsvContent = `Relatório Urban Icon - ${formatarPeriodo(filtros.periodo)}\t\t\t\n`;
         tsvContent += `Data de Exportação\t${dataAtual.toLocaleDateString('pt-BR')}\t\t\t\n`;
         tsvContent += `Período\t${formatarPeriodo(filtros.periodo)}\t\t\t\n\n`;
 
@@ -395,7 +395,7 @@ export default function AdminRelatorios() {
           <html>
           <head>
             <meta charset="UTF-8">
-            <title>Relatório ModaStyle</title>
+            <title>Relatório Urban Icon</title>
             <style>
               body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
               .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #8b5cf6; padding-bottom: 15px; }
@@ -416,7 +416,7 @@ export default function AdminRelatorios() {
           </head>
           <body>
             <div class="header">
-              <h1>🛍️ Relatório ModaStyle</h1>
+              <h1>🛍️ Relatório Urban Icon</h1>
               <p><strong>Período:</strong> ${formatarPeriodo(filtros.periodo)}</p>
               <p><strong>Data de Exportação:</strong> ${dataAtual.toLocaleDateString('pt-BR')} às ${dataAtual.toLocaleTimeString('pt-BR')}</p>
             </div>
@@ -516,8 +516,8 @@ export default function AdminRelatorios() {
             ` : ''}
 
             <div class="footer">
-              <p>Relatório gerado automaticamente pelo sistema ModaStyle</p>
-              <p>© ${dataAtual.getFullYear()} ModaStyle - Todos os direitos reservados</p>
+              <p>Relatório gerado automaticamente pelo sistema Urban Icon</p>
+              <p>© ${dataAtual.getFullYear()} Urban Icon - Todos os direitos reservados</p>
             </div>
           </body>
           </html>
@@ -719,6 +719,32 @@ export default function AdminRelatorios() {
       </div>
     );
   }
+
+  // Filtrar interações válidas (quantidade > 0 e tipo diferente de 'Nenhuma interação')
+  // Padronize os tipos de interação para o gráfico:
+  const interacoesValidas = relatorioData?.interacoesPorTipo
+    ? relatorioData.interacoesPorTipo
+        .filter(item => item.quantidade > 0)
+        .map(item => {
+          const tipo = item.tipo
+            .toUpperCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+          if (tipo.includes("AVALIACAO")) return { ...item, tipo: "Avaliação" };
+          if (tipo.includes("COMENTARIO")) return { ...item, tipo: "Comentário" };
+          return item;
+        })
+        // Agrupa para evitar duplicidade (ex: "Comentário" vindo mais de uma vez)
+        .reduce((acc, curr) => {
+          const found = acc.find(i => i.tipo === curr.tipo);
+          if (found) {
+            found.quantidade += curr.quantidade;
+          } else {
+            acc.push({ ...curr });
+          }
+          return acc;
+        }, [] as { tipo: string; quantidade: number }[])
+    : [];
 
   return (
     <div className="space-y-6">
@@ -935,7 +961,7 @@ export default function AdminRelatorios() {
             ) : (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 00-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2v-4a2 2 0 01-2-2h-2a2 2 0 00-2 2z" />
                 </svg>
                 <h3 className="text-lg font-medium mb-2">Dados insuficientes</h3>
                 <p>Aguarde mais dados serem coletados para visualizar a evolução</p>
@@ -948,9 +974,9 @@ export default function AdminRelatorios() {
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
               🍕 Tipos de Interação
             </h3>
-            {relatorioData.interacoesPorTipo.length > 0 && relatorioData.interacoesPorTipo[0].tipo !== 'Nenhuma interação' ? (
+            {interacoesValidas.length > 0 ? (
               <VictoryPie
-                data={relatorioData.interacoesPorTipo}
+                data={interacoesValidas}
                 x="tipo"
                 y="quantidade"
                 width={400}
@@ -1161,7 +1187,7 @@ export default function AdminRelatorios() {
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
               💬 Distribuição de Interações
             </h3>
-            {relatorioData.interacoesPorTipo.length > 0 && relatorioData.interacoesPorTipo[0].tipo !== 'Nenhuma interação' ? (
+            {interacoesValidas.length > 0 ? (
               <VictoryChart
                 theme={VictoryTheme.material}
                 height={300}
@@ -1170,9 +1196,8 @@ export default function AdminRelatorios() {
               >
                 <VictoryAxis dependentAxis />
                 <VictoryAxis />
-                
                 <VictoryBar
-                  data={relatorioData.interacoesPorTipo}
+                  data={interacoesValidas}
                   x="tipo"
                   y="quantidade"
                   style={{ data: { fill: "#3b82f6" } }}

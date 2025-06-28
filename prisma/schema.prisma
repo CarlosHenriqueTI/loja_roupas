@@ -9,19 +9,27 @@ datasource db {
 }
 
 model Cliente {
-  id               Int       @id @default(autoincrement())
+  id               Int          @id @default(autoincrement())
   nome             String
-  email            String    @unique
+  email            String       @unique
   senha            String
   telefone         String?
   endereco         String?
-  emailVerificado  Boolean   @default(false)
-  emailToken       String?   @unique
+  cidade           String?
+  estado           String?
+  cep              String?
+  cpf              String?
+  dataNascimento   DateTime?
+  emailVerificado  Boolean      @default(false)
+  emailToken       String?      @unique
   emailTokenExpira DateTime?
-  resetToken       String?   @unique
+  resetToken       String?      @unique
   resetTokenExpira DateTime?
-  createdAt        DateTime  @default(now()) // ✅ Data de cadastro
-  updatedAt        DateTime  @updatedAt
+  ativo            Boolean      @default(true)     // ✅ Campo de ativação
+  status           StatusConta  @default(ATIVO)    // ✅ NOVO: Status da conta
+  ultimoLogin      DateTime?                       // ✅ NOVO: Último login
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   interacoes       Interacao[]
 
   @@map("clientes")
@@ -43,6 +51,8 @@ model Admin {
   senhaDefinida    Boolean     @default(false)
   tokenConfirmacao String?     @unique
   tokenExpiracao   DateTime?
+  ativo            Boolean     @default(true)     // ✅ Campo de ativação
+  status           StatusConta @default(PENDENTE) // ✅ NOVO: Status da conta (PENDENTE para convites)
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
@@ -62,7 +72,8 @@ model Produto {
   disponivel    Boolean     @default(true)
   destaque      Boolean     @default(false)
   estoque       Int         @default(0)
-  createdAt     DateTime    @default(now()) // ✅ Data de cadastro
+  status        StatusProduto @default(ATIVO) // ✅ NOVO: Status do produto
+  createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   interacoes    Interacao[]
 
@@ -75,7 +86,7 @@ model Interacao {
   conteudo  String?
   nota      Int?
   avaliacao Int?     // ✅ Campo de avaliação (1-5 estrelas)
-  createdAt DateTime @default(now()) // ✅ Data da interação
+  createdAt DateTime @default(now())
   clienteId Int
   cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   produtoId Int
@@ -83,8 +94,27 @@ model Interacao {
 
   @@index([produtoId])
   @@index([clienteId])
-  @@index([createdAt]) // ✅ Índice para consultas por data
+  @@index([createdAt])
   @@map("Interacao")
+}
+
+// ✅ NOVO: Enum para status de contas (Clientes e Admins)
+enum StatusConta {
+  ATIVO         // Conta ativa e funcionando
+  INATIVO       // Conta desativada temporariamente
+  SUSPENSO      // Conta suspensa por violação
+  BLOQUEADO     // Conta bloqueada permanentemente
+  PENDENTE      // Aguardando verificação/confirmação
+  EXCLUIDO      // Conta marcada para exclusão
+}
+
+// ✅ NOVO: Enum para status de produtos
+enum StatusProduto {
+  ATIVO         // Produto ativo e disponível
+  INATIVO       // Produto temporariamente indisponível
+  DESCONTINUADO // Produto descontinuado
+  RASCUNHO      // Produto em elaboração
+  ESGOTADO      // Produto sem estoque
 }
 
 enum NivelAcesso {

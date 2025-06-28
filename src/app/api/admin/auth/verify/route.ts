@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       // Verificar e decodificar o token
       const decoded = jwt.verify(
         token, 
-        process.env.JWT_SECRET || 'modastyle-admin-secret'
+        process.env.JWT_SECRET || 'Urban Icon-admin-secret'
       ) as { adminId: string; email: string; nivelAcesso: string; iat: number; exp: number };
 
       // Buscar admin no banco para verificar se ainda existe e está ativo
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     try {
       const decoded = jwt.verify(
         token, 
-        process.env.JWT_SECRET || 'modastyle-admin-secret'
+        process.env.JWT_SECRET || 'Urban Icon-admin-secret'
       ) as { adminId: string; email: string; nivelAcesso: string; iat: number; exp: number };
 
       const admin = await prisma.admin.findUnique({
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
           email: admin.email,
           nivelAcesso: admin.nivelAcesso
         },
-        process.env.JWT_SECRET || 'modastyle-admin-secret',
+        process.env.JWT_SECRET || 'Urban Icon-admin-secret',
         { 
           expiresIn: '7d'
         }

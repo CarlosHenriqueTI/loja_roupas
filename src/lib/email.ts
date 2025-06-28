@@ -24,7 +24,7 @@ class EmailService {
   async sendEmail(to: string, template: EmailTemplate) {
     try {
       const info = await this.transporter.sendMail({
-        from: `"ModaStyle" <${process.env.SMTP_USER}>`,
+        from: `"Urban Icon" <${process.env.SMTP_USER}>`,
         to: to,
         subject: template.subject,
         text: template.text,
@@ -43,7 +43,7 @@ class EmailService {
     const confirmationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/clientes/confirmar-email?token=${confirmationToken}`;
     
     return {
-      subject: '✨ Confirme seu cadastro - ModaStyle',
+      subject: '✨ Confirme seu cadastro - Urban Icon',
       html: `
         <!DOCTYPE html>
         <html lang="pt-BR">
@@ -200,8 +200,8 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">ModaStyle</div>
-              <h1>🎉 Bem-vindo à ModaStyle!</h1>
+              <div class="logo">Urban Icon</div>
+              <h1>🎉 Bem-vindo à Urban Icon!</h1>
               <p>Sua jornada de estilo começa aqui</p>
             </div>
             
@@ -209,7 +209,7 @@ class EmailService {
               <div class="greeting">Olá, ${nome}!</div>
               
               <p class="text">
-                Que alegria ter você conosco! Obrigado por se cadastrar na ModaStyle. 
+                Que alegria ter você conosco! Obrigado por se cadastrar na Urban Icon. 
                 Para completar seu cadastro e começar a explorar nossa coleção exclusiva, 
                 você precisa confirmar seu email.
               </p>
@@ -233,7 +233,7 @@ class EmailService {
               </div>
               
               <div class="features">
-                <h3>🛍️ O que você encontrará na ModaStyle:</h3>
+                <h3>🛍️ O que você encontrará na Urban Icon:</h3>
                 <ul>
                   <li>Peças exclusivas e de qualidade premium</li>
                   <li>Entrega rápida e segura</li>
@@ -245,9 +245,9 @@ class EmailService {
             </div>
             
             <div class="footer">
-              <p><strong>ModaStyle</strong> - Seu estilo, nossa paixão</p>
-              <p>Se você não se cadastrou na ModaStyle, pode ignorar este email.</p>
-              <p>© 2024 ModaStyle. Todos os direitos reservados.</p>
+              <p><strong>Urban Icon</strong> - Seu estilo, nossa paixão</p>
+              <p>Se você não se cadastrou na Urban Icon, pode ignorar este email.</p>
+              <p>© 2024 Urban Icon. Todos os direitos reservados.</p>
             </div>
           </div>
         </body>
@@ -256,28 +256,28 @@ class EmailService {
       text: `
         Olá, ${nome}!
         
-        Bem-vindo à ModaStyle! Para completar seu cadastro, confirme seu email clicando no link abaixo:
+        Bem-vindo à Urban Icon! Para completar seu cadastro, confirme seu email clicando no link abaixo:
         
         ${confirmationUrl}
         
         Este link expira em 24 horas.
         
-        O que você encontrará na ModaStyle:
+        O que você encontrará na Urban Icon:
         ✨ Peças exclusivas e de qualidade premium
         🚚 Entrega rápida e segura  
         💝 Ofertas especiais para membros
         📱 Experiência de compra personalizada
         
-        Se você não se cadastrou na ModaStyle, pode ignorar este email.
+        Se você não se cadastrou na Urban Icon, pode ignorar este email.
         
-        © 2024 ModaStyle
+        © 2024 Urban Icon
       `
     };
   }
 
   generatePasswordResetEmail(nome: string, resetCode: string): EmailTemplate {
     return {
-      subject: '🔐 Código para redefinir sua senha - ModaStyle',
+      subject: '🔐 Código para redefinir sua senha - Urban Icon',
       html: `
         <!DOCTYPE html>
         <html lang="pt-BR">
@@ -402,7 +402,7 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">ModaStyle</div>
+              <div class="logo">Urban Icon</div>
               <h1>🔐 Redefinir Senha</h1>
             </div>
             
@@ -410,7 +410,7 @@ class EmailService {
               <div class="greeting">Olá, ${nome}!</div>
               
               <p class="text">
-                Recebemos uma solicitação para redefinir a senha da sua conta na ModaStyle. 
+                Recebemos uma solicitação para redefinir a senha da sua conta na Urban Icon. 
                 Use o código abaixo na página de redefinição de senha:
               </p>
               
@@ -446,9 +446,9 @@ class EmailService {
             </div>
             
             <div class="footer">
-              <p><strong>ModaStyle</strong> - Segurança em primeiro lugar</p>
+              <p><strong>Urban Icon</strong> - Segurança em primeiro lugar</p>
               <p>Este é um email automático, não responda.</p>
-              <p>© 2024 ModaStyle. Todos os direitos reservados.</p>
+              <p>© 2024 Urban Icon. Todos os direitos reservados.</p>
             </div>
           </div>
         </body>
@@ -457,7 +457,7 @@ class EmailService {
       text: `
         Olá, ${nome}!
         
-        Recebemos uma solicitação para redefinir a senha da sua conta na ModaStyle.
+        Recebemos uma solicitação para redefinir a senha da sua conta na Urban Icon.
         
         Código de verificação: ${resetCode}
         
@@ -474,7 +474,7 @@ class EmailService {
         • Evite informações pessoais óbvias
         • Não reutilize senhas de outras contas
         
-        © 2024 ModaStyle
+        © 2024 Urban Icon
       `
     };
   }

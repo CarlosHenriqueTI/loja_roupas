@@ -17,7 +17,7 @@ async function verifyAuth(request: NextRequest) {
     
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || 'modastyle-admin-secret'
+      process.env.JWT_SECRET || 'Urban Icon-admin-secret'
     ) as { adminId: number; email: string; nivelAcesso: string };
 
     // Verificar se admin ainda existe
@@ -47,24 +47,31 @@ async function verifyAuth(request: NextRequest) {
 // Listar administradores
 export async function GET(request: NextRequest) {
   try {
+    console.log('📡 [API] Recebida requisição para listar administradores');
+    
+    // Verificar autenticação
     const authResult = await verifyAuth(request);
     
     if (!authResult.success) {
+      console.log('❌ [API] Falha na autenticação:', authResult.error);
       return NextResponse.json(
         { success: false, error: authResult.error },
         { status: authResult.status || 401 }
       );
     }
 
-    // Apenas SUPERADMIN e ADMIN podem listar
-    const userLevel = authResult.admin!.nivelAcesso;
-    if (userLevel !== 'SUPERADMIN' && userLevel !== 'ADMIN') {
+    // Apenas SUPERADMIN pode listar administradores
+    if (authResult.admin.nivelAcesso !== 'SUPERADMIN') {
+      console.log('❌ [API] Acesso negado - nível insuficiente:', authResult.admin.nivelAcesso);
       return NextResponse.json(
-        { success: false, error: 'Acesso negado' },
+        { success: false, error: 'Apenas SUPERADMIN pode visualizar administradores' },
         { status: 403 }
       );
     }
 
+    console.log('✅ [API] Autenticação válida, buscando administradores...');
+
+    // Buscar todos os administradores (incluindo campo status)
     const admins = await prisma.admin.findMany({
       select: {
         id: true,
@@ -72,13 +79,20 @@ export async function GET(request: NextRequest) {
         email: true,
         nivelAcesso: true,
         emailVerificado: true,
+        ativo: true,
+        status: true, // ✅ INCLUIR CAMPO STATUS
         ultimoLogin: true,
         ultimoLogout: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: [
+        { nivelAcesso: 'desc' },
+        { createdAt: 'desc' }
+      ]
     });
+
+    console.log(`✅ [API] ${admins.length} administradores encontrados`);
 
     return NextResponse.json({ 
       success: true, 
@@ -86,7 +100,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro ao buscar admins:', error);
+    console.error('❌ [API] Erro ao buscar admins:', error);
     return NextResponse.json({ 
       success: false, 
       error: 'Erro interno do servidor' 

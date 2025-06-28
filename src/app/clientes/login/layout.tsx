@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Login - ModaStyle",
-  description: "Faça login em sua conta ModaStyle para acessar produtos exclusivos.",
+  title: "Login - Urban Icon",
+  description: "Faça login em sua conta Urban Icon para acessar produtos exclusivos.",
 };
 
 export const viewport: Viewport = {

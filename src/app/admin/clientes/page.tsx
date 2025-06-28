@@ -36,6 +36,7 @@ interface Cliente {
   createdAt: string;
   updatedAt: string;
   ativo: boolean;
+  status: string; // Novo campo status
   _count?: {
     interacoes: number;
   };
@@ -414,40 +415,31 @@ export default function AdminClientes() {
   };
 
   const getClienteStatus = (cliente: Cliente) => {
-    if (!cliente.ativo) {
-      return { 
-        label: 'Inativo', 
-        color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' 
-      };
-    }
-    
-    const totalInteracoes = cliente._count?.interacoes || 0;
-    
-    if (totalInteracoes >= 10) {
-      return { 
-        label: 'Muito Ativo', 
-        color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' 
-      };
-    }
-    
-    if (totalInteracoes >= 3) {
-      return { 
+    // Usar o novo campo status em vez de lógica complexa
+    const statusInfo = {
+      'ATIVO': { 
         label: 'Ativo', 
         color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-      };
-    }
-    
-    if (totalInteracoes >= 1) {
-      return { 
-        label: 'Pouco Ativo', 
+      },
+      'INATIVO': { 
+        label: 'Inativo', 
+        color: 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-400' 
+      },
+      'SUSPENSO': { 
+        label: 'Suspenso', 
+        color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' 
+      },
+      'BLOQUEADO': { 
+        label: 'Bloqueado', 
+        color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' 
+      },
+      'PENDENTE': { 
+        label: 'Pendente', 
         color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' 
-      };
-    }
-    
-    return { 
-      label: 'Sem Atividade', 
-      color: 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-400' 
+      }
     };
+
+    return statusInfo[cliente.status] || statusInfo['INATIVO'];
   };
 
   // ✅ Verificação de acesso melhorada
