@@ -1,110 +1,168 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
+  User, 
   Mail, 
   Lock, 
+  Phone, 
+  MapPin, 
   Eye, 
   EyeOff, 
-  LogIn, 
   CheckCircle, 
   XCircle,
-  AlertCircle,
-  Loader2,
-  ArrowRight,
-  Shield,
-  UserCheck
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface LoginData {
+interface FormData {
+  nome: string;
   email: string;
   senha: string;
-  lembrarMe: boolean;
+  confirmarSenha: string;
+  telefone: string;
+  endereco: string;
+  cidade: string;
+  estado: string;
+  cep: string;
 }
 
-interface LoginErrors {
-  email?: string;
-  senha?: string;
-  general?: string;
+interface FormErrors {
+  [key: string]: string;
 }
 
-export default function Login() {
+export default function Cadastro() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [formData, setFormData] = useState<LoginData>({
+  const [formData, setFormData] = useState<FormData>({
+    nome: "",
     email: "",
     senha: "",
-    lembrarMe: false
+    confirmarSenha: "",
+    telefone: "",
+    endereco: "",
+    cidade: "",
+    estado: "",
+    cep: ""
   });
 
-  const [errors, setErrors] = useState<LoginErrors>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginAttempts, setLoginAttempts] = useState(0);
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [blockTimeRemaining, setBlockTimeRemaining] = useState(0);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [step, setStep] = useState(1); // Etapas do formulário
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
-  // Verificar se há mensagem de redirecionamento
-  const message = searchParams?.get('message');
-  const redirect = searchParams?.get('redirect') || '/';
+  // Estados brasileiros
+  const estados = [
+    { value: "", label: "Selecione um estado" },
+    { value: "AC", label: "Acre" },
+    { value: "AL", label: "Alagoas" },
+    { value: "AP", label: "Amapá" },
+    { value: "AM", label: "Amazonas" },
+    { value: "BA", label: "Bahia" },
+    { value: "CE", label: "Ceará" },
+    { value: "DF", label: "Distrito Federal" },
+    { value: "ES", label: "Espírito Santo" },
+    { value: "GO", label: "Goiás" },
+    { value: "MA", label: "Maranhão" },
+    { value: "MT", label: "Mato Grosso" },
+    { value: "MS", label: "Mato Grosso do Sul" },
+    { value: "MG", label: "Minas Gerais" },
+    { value: "PA", label: "Pará" },
+    { value: "PB", label: "Paraíba" },
+    { value: "PR", label: "Paraná" },
+    { value: "PE", label: "Pernambuco" },
+    { value: "PI", label: "Piauí" },
+    { value: "RJ", label: "Rio de Janeiro" },
+    { value: "RN", label: "Rio Grande do Norte" },
+    { value: "RS", label: "Rio Grande do Sul" },
+    { value: "RO", label: "Rondônia" },
+    { value: "RR", label: "Roraima" },
+    { value: "SC", label: "Santa Catarina" },
+    { value: "SP", label: "São Paulo" },
+    { value: "SE", label: "Sergipe" },
+    { value: "TO", label: "Tocantins" }
+  ];
 
+  // Calcular força da senha
   useEffect(() => {
-    if (message) {
-      if (message === 'unauthorized') {
-        toast.error("Acesso negado", {
-          description: "Você precisa fazer login para acessar esta página.",
-        });
-      } else if (message === 'session_expired') {
-        toast.warning("Sessão expirada", {
-          description: "Sua sessão expirou. Faça login novamente.",
-        });
-      } else if (message === 'registered') {
-        toast.success("Cadastro realizado!", {
-          description: "Agora você pode fazer login com suas credenciais.",
-        });
+    const senha = formData.senha;
+    let strength = 0;
+    
+    if (senha.length >= 8) strength++;
+    if (/[a-z]/.test(senha)) strength++;
+    if (/[A-Z]/.test(senha)) strength++;
+    if (/[0-9]/.test(senha)) strength++;
+    if (/[^A-Za-z0-9]/.test(senha)) strength++;
+    
+    setPasswordStrength(strength);
+  }, [formData.senha]);
+
+  // Validação de CEP
+  const buscarCEP = async (cep: string) => {
+    const cepLimpo = cep.replace(/\D/g, "");
+    
+    if (cepLimpo.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+        const data = await response.json();
+        
+        if (!data.erro) {
+          setFormData(prev => ({
+            ...prev,
+            endereco: data.logradouro || "",
+            cidade: data.localidade || "",
+            estado: data.uf || ""
+          }));
+        }
+      } catch (error) {
+        console.error("Erro ao buscar CEP:", error);
       }
     }
-  }, [message]);
-
-  // Timer para desbloqueio
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isBlocked && blockTimeRemaining > 0) {
-      interval = setInterval(() => {
-        setBlockTimeRemaining(prev => {
-          if (prev <= 1) {
-            setIsBlocked(false);
-            setLoginAttempts(0);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isBlocked, blockTimeRemaining]);
+  };
 
   // Validação do formulário
-  const validateForm = (): boolean => {
-    const newErrors: LoginErrors = {};
+  const validateStep = (currentStep: number): boolean => {
+    const newErrors: FormErrors = {};
 
-    if (!formData.email.trim()) {
-      newErrors.email = "E-mail é obrigatório";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "E-mail inválido";
+    if (currentStep === 1) {
+      // Validação da primeira etapa
+      if (!formData.nome.trim()) {
+        newErrors.nome = "Nome é obrigatório";
+      } else if (formData.nome.trim().length < 2) {
+        newErrors.nome = "Nome deve ter pelo menos 2 caracteres";
+      }
+
+      if (!formData.email.trim()) {
+        newErrors.email = "E-mail é obrigatório";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = "E-mail inválido";
+      }
+
+      if (!formData.senha) {
+        newErrors.senha = "Senha é obrigatória";
+      } else if (formData.senha.length < 8) {
+        newErrors.senha = "Senha deve ter pelo menos 8 caracteres";
+      }
+
+      if (!formData.confirmarSenha) {
+        newErrors.confirmarSenha = "Confirmação de senha é obrigatória";
+      } else if (formData.senha !== formData.confirmarSenha) {
+        newErrors.confirmarSenha = "Senhas não coincidem";
+      }
     }
 
-    if (!formData.senha) {
-      newErrors.senha = "Senha é obrigatória";
-    } else if (formData.senha.length < 6) {
-      newErrors.senha = "Senha deve ter pelo menos 6 caracteres";
+    if (currentStep === 2) {
+      // Validação da segunda etapa (opcionais, mas validar formato se preenchido)
+      if (formData.telefone && !/^[\d\s\(\)\-\+]+$/.test(formData.telefone)) {
+        newErrors.telefone = "Formato de telefone inválido";
+      }
+
+      if (formData.cep && !/^\d{5}-?\d{3}$/.test(formData.cep)) {
+        newErrors.cep = "Formato de CEP inválido";
+      }
     }
 
     setErrors(newErrors);
@@ -112,244 +170,197 @@ export default function Login() {
   };
 
   // Manipulação de mudanças no formulário
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
     
+    // Formatação automática
+    let formattedValue = value;
+    
+    if (name === "telefone") {
+      formattedValue = value.replace(/\D/g, "")
+        .replace(/(\d{2})(\d)/, "($1) $2")
+        .replace(/(\d{5})(\d)/, "$1-$2")
+        .replace(/(-\d{4})\d+?$/, "$1");
+    }
+    
+    if (name === "cep") {
+      formattedValue = value.replace(/\D/g, "")
+        .replace(/(\d{5})(\d)/, "$1-$2")
+        .replace(/(-\d{3})\d+?$/, "$1");
+      
+      // Buscar CEP automaticamente
+      if (formattedValue.length === 9) {
+        buscarCEP(formattedValue);
+      }
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: formattedValue
     }));
 
     // Limpar erro quando o usuário começar a digitar
-    if (errors[name as keyof LoginErrors]) {
+    if (errors[name]) {
       setErrors(prev => ({
         ...prev,
-        [name]: undefined
+        [name]: ""
       }));
     }
-    
-    // Limpar erro geral também
-    if (errors.general) {
-      setErrors(prev => ({
-        ...prev,
-        general: undefined
-      }));
+  };
+
+  // Avançar etapa
+  const nextStep = () => {
+    if (validateStep(step)) {
+      setStep(step + 1);
     }
+  };
+
+  // Voltar etapa
+  const prevStep = () => {
+    setStep(step - 1);
   };
 
   // Submissão do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isBlocked) {
-      toast.error("Muitas tentativas", {
-        description: `Aguarde ${blockTimeRemaining} segundos antes de tentar novamente.`,
-      });
-      return;
-    }
-    
-    if (!validateForm()) {
+    if (!validateStep(step)) {
       return;
     }
 
     setLoading(true);
-    setErrors({});
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/clientes/cadastro", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: formData.email,
-          senha: formData.senha,
-          lembrarMe: formData.lembrarMe
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success("Login realizado com sucesso!", {
-          description: `Bem-vindo(a), ${data.user?.nome || 'usuário'}!`,
+        toast.success("Cadastro realizado com sucesso!", {
+          description: "Verifique seu e-mail para confirmar sua conta.",
         });
         
-        // Resetar tentativas de login
-        setLoginAttempts(0);
-        setIsBlocked(false);
-        
-        // Redirecionar
         setTimeout(() => {
-          router.push(redirect);
-        }, 1000);
+          router.push("/clientes/login");
+        }, 2000);
       } else {
-        // Incrementar tentativas de login
-        const newAttempts = loginAttempts + 1;
-        setLoginAttempts(newAttempts);
-        
-        // Bloquear após 3 tentativas
-        if (newAttempts >= 3) {
-          setIsBlocked(true);
-          setBlockTimeRemaining(60); // 1 minuto de bloqueio
-          toast.error("Muitas tentativas de login", {
-            description: "Conta temporariamente bloqueada por 1 minuto.",
-          });
-        } else {
-          setErrors({ general: data.error || "E-mail ou senha incorretos" });
-          toast.error("Erro no login", {
-            description: data.error || "Verifique suas credenciais e tente novamente.",
-          });
-        }
+        toast.error("Erro ao realizar cadastro", {
+          description: data.error || "Tente novamente mais tarde.",
+        });
       }
     } catch (error) {
-      setErrors({ general: "Erro de conexão. Tente novamente." });
-      toast.error("Erro de conexão", {
-        description: "Verifique sua internet e tente novamente.",
+      toast.error("Erro ao realizar cadastro", {
+        description: "Verifique sua conexão e tente novamente.",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Formatação do tempo de bloqueio
-  const formatBlockTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  // Componente de força da senha
+  const PasswordStrength = () => {
+    const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-blue-500", "bg-green-500"];
+    const labels = ["Muito fraca", "Fraca", "Razoável", "Forte", "Muito forte"];
+    
+    return (
+      <div className="mt-2">
+        <div className="flex gap-1 mb-1">
+          {[1, 2, 3, 4, 5].map((level) => (
+            <div
+              key={level}
+              className={`h-1 flex-1 rounded-full ${
+                level <= passwordStrength ? colors[passwordStrength - 1] || "bg-gray-300" : "bg-gray-300"
+              }`}
+            />
+          ))}
+        </div>
+        {formData.senha && (
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            Força: {labels[passwordStrength - 1] || "Muito fraca"}
+          </p>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      
-      {/* Header decorativo */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 dark:from-purple-900/20 dark:to-pink-900/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              Bem-vindo de volta!
-            </h1>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Faça login na sua conta para continuar explorando nossa coleção exclusiva
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Conteúdo principal */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8">
+        
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+            Criar Conta
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            Junte-se à Urban Icon e descubra o melhor da moda
+          </p>
           
-          {/* Lado esquerdo - Informações */}
-          <div className="hidden lg:block">
-            <div className="space-y-6 lg:space-y-8">
-              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                    <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Seguro e Confiável
-                  </h3>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Seus dados estão protegidos com criptografia de ponta e sistemas de segurança avançados.
-                </p>
+          {/* Indicador de progresso */}
+          <div className="mt-4 sm:mt-6">
+            <div className="flex items-center justify-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                step >= 1 ? "bg-purple-600 text-white" : "bg-gray-300 text-gray-600"
+              }`}>
+                1
               </div>
-
-              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                    <UserCheck className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Experiência Personalizada
-                  </h3>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Acesse suas preferências, histórico de compras e recomendações exclusivas.
-                </p>
-              </div>
-
-              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                    <CheckCircle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Acesso Rápido
-                  </h3>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Checkout mais rápido, acompanhamento de pedidos e atendimento prioritário.
-                </p>
+              <div className={`w-12 h-1 rounded ${
+                step >= 2 ? "bg-purple-600" : "bg-gray-300"
+              }`} />
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                step >= 2 ? "bg-purple-600 text-white" : "bg-gray-300 text-gray-600"
+              }`}>
+                2
               </div>
             </div>
+            <div className="flex justify-between mt-2 text-xs text-gray-600 dark:text-gray-400">
+              <span>Dados básicos</span>
+              <span>Informações adicionais</span>
+            </div>
           </div>
+        </div>
 
-          {/* Lado direito - Formulário */}
-          <div className="w-full max-w-md mx-auto lg:mx-0">
+        {/* Formulário */}
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             
-            {/* Alerta de bloqueio */}
-            {isBlocked && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
-                      Conta temporariamente bloqueada
-                    </h3>
-                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                      Aguarde {formatBlockTime(blockTimeRemaining)} para tentar novamente
+            {/* Etapa 1: Dados Básicos */}
+            {step === 1 && (
+              <>
+                <div>
+                  <label htmlFor="nome" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <User className="inline h-4 w-4 mr-2" />
+                    Nome completo *
+                  </label>
+                  <input
+                    type="text"
+                    id="nome"
+                    name="nome"
+                    value={formData.nome}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm sm:text-base ${
+                      errors.nome ? "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20" : "border-gray-300 dark:border-gray-600"
+                    }`}
+                    placeholder="Seu nome completo"
+                  />
+                  {errors.nome && (
+                    <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                      {errors.nome}
                     </p>
-                  </div>
+                  )}
                 </div>
-              </div>
-            )}
 
-            {/* Aviso de tentativas */}
-            {loginAttempts > 0 && !isBlocked && (
-              <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm text-orange-800 dark:text-orange-200">
-                      Tentativas restantes: {3 - loginAttempts}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 sm:p-8">
-              
-              <div className="text-center mb-6 sm:mb-8">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Fazer Login
-                </h2>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                  Entre na sua conta para continuar
-                </p>
-              </div>
-
-              {/* Erro geral */}
-              {errors.general && (
-                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-                    <p className="text-sm text-red-800 dark:text-red-200">{errors.general}</p>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                
-                {/* Email */}
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <Mail className="inline h-4 w-4 mr-2" />
-                    E-mail
+                    E-mail *
                   </label>
                   <input
                     type="email"
@@ -357,14 +368,10 @@ export default function Login() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={isBlocked}
-                    className={`w-full px-3 py-2 sm:px-4 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed ${
-                      errors.email 
-                        ? "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20" 
-                        : "border-gray-300 dark:border-gray-600"
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm sm:text-base ${
+                      errors.email ? "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20" : "border-gray-300 dark:border-gray-600"
                     }`}
                     placeholder="seu@email.com"
-                    autoComplete="email"
                   />
                   {errors.email && (
                     <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
@@ -374,11 +381,10 @@ export default function Login() {
                   )}
                 </div>
 
-                {/* Senha */}
                 <div>
                   <label htmlFor="senha" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <Lock className="inline h-4 w-4 mr-2" />
-                    Senha
+                    Senha *
                   </label>
                   <div className="relative">
                     <input
@@ -387,24 +393,20 @@ export default function Login() {
                       name="senha"
                       value={formData.senha}
                       onChange={handleChange}
-                      disabled={isBlocked}
-                      className={`w-full px-3 py-2 sm:px-4 sm:py-3 pr-10 sm:pr-12 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed ${
-                        errors.senha 
-                          ? "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20" 
-                          : "border-gray-300 dark:border-gray-600"
+                      className={`w-full px-3 py-2 sm:px-4 sm:py-3 pr-10 sm:pr-12 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm sm:text-base ${
+                        errors.senha ? "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20" : "border-gray-300 dark:border-gray-600"
                       }`}
-                      placeholder="Sua senha"
-                      autoComplete="current-password"
+                      placeholder="Mínimo 8 caracteres"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      disabled={isBlocked}
-                      className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+                      className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                     </button>
                   </div>
+                  {formData.senha && <PasswordStrength />}
                   {errors.senha && (
                     <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
                       <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -413,81 +415,191 @@ export default function Login() {
                   )}
                 </div>
 
-                {/* Opções extras */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="lembrarMe"
-                      checked={formData.lembrarMe}
-                      onChange={handleChange}
-                      disabled={isBlocked}
-                      className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50"
-                    />
-                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      Lembrar de mim
-                    </span>
+                <div>
+                  <label htmlFor="confirmarSenha" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <Lock className="inline h-4 w-4 mr-2" />
+                    Confirmar senha *
                   </label>
-                  
-                  <Link 
-                    href="/esqueci-senha" 
-                    className="text-xs sm:text-sm text-purple-600 hover:text-purple-500 dark:text-purple-400 dark:hover:text-purple-300 font-medium transition-colors"
-                  >
-                    Esqueci minha senha
-                  </Link>
-                </div>
-
-                {/* Botão de login */}
-                <button
-                  type="submit"
-                  disabled={loading || isBlocked}
-                  className="w-full px-4 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg sm:rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 focus:ring-4 focus:ring-purple-500/50 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm sm:text-base"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-                      Entrando...
-                    </span>
-                  ) : isBlocked ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                      Aguarde {formatBlockTime(blockTimeRemaining)}
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <LogIn className="h-4 w-4 sm:h-5 sm:w-5" />
-                      Entrar
-                      <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </span>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmarSenha"
+                      name="confirmarSenha"
+                      value={formData.confirmarSenha}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 sm:px-4 sm:py-3 pr-10 sm:pr-12 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm sm:text-base ${
+                        errors.confirmarSenha ? "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20" : "border-gray-300 dark:border-gray-600"
+                      }`}
+                      placeholder="Confirme sua senha"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
+                    </button>
+                  </div>
+                  {errors.confirmarSenha && (
+                    <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                      {errors.confirmarSenha}
+                    </p>
                   )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className="w-full px-4 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg sm:rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 focus:ring-4 focus:ring-purple-500/50 transition-all transform hover:scale-[1.02] active:scale-[0.98] text-sm sm:text-base"
+                >
+                  Continuar
                 </button>
+              </>
+            )}
 
-              </form>
-
-              {/* Divisor */}
-              <div className="my-6 sm:my-8">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            {/* Etapa 2: Informações Adicionais */}
+            {step === 2 && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div>
+                    <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <Phone className="inline h-4 w-4 mr-2" />
+                      Telefone
+                    </label>
+                    <input
+                      type="tel"
+                      id="telefone"
+                      name="telefone"
+                      value={formData.telefone}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 sm:px-4 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm sm:text-base ${
+                        errors.telefone ? "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20" : "border-gray-300 dark:border-gray-600"
+                      }`}
+                      placeholder="(11) 99999-9999"
+                    />
+                    {errors.telefone && (
+                      <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400">{errors.telefone}</p>
+                    )}
                   </div>
-                  <div className="relative flex justify-center text-xs sm:text-sm">
-                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                      Ainda não tem conta?
-                    </span>
+
+                  <div>
+                    <label htmlFor="cep" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <MapPin className="inline h-4 w-4 mr-2" />
+                      CEP
+                    </label>
+                    <input
+                      type="text"
+                      id="cep"
+                      name="cep"
+                      value={formData.cep}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 sm:px-4 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm sm:text-base ${
+                        errors.cep ? "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20" : "border-gray-300 dark:border-gray-600"
+                      }`}
+                      placeholder="12345-678"
+                    />
+                    {errors.cep && (
+                      <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400">{errors.cep}</p>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* Link para cadastro */}
-              <Link
-                href="/cadastro"
-                className="w-full block text-center px-4 py-2 sm:py-3 border border-purple-600 text-purple-600 rounded-lg sm:rounded-xl font-semibold hover:bg-purple-50 dark:hover:bg-purple-900/20 focus:ring-4 focus:ring-purple-500/50 transition-all text-sm sm:text-base"
-              >
-                Criar nova conta
-              </Link>
+                <div>
+                  <label htmlFor="endereco" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Endereço
+                  </label>
+                  <input
+                    type="text"
+                    id="endereco"
+                    name="endereco"
+                    value={formData.endereco}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:text-white text-sm sm:text-base"
+                    placeholder="Rua, número, complemento"
+                  />
+                </div>
 
-            </div>
-          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div>
+                    <label htmlFor="cidade" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Cidade
+                    </label>
+                    <input
+                      type="text"
+                      id="cidade"
+                      name="cidade"
+                      value={formData.cidade}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:text-white text-sm sm:text-base"
+                      placeholder="Sua cidade"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="estado" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Estado
+                    </label>
+                    <select
+                      id="estado"
+                      name="estado"
+                      value={formData.estado}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:bg-gray-700 dark:text-white text-sm sm:text-base"
+                    >
+                      {estados.map(estado => (
+                        <option key={estado.value} value={estado.value}>
+                          {estado.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={prevStep}
+                    className="w-full sm:w-auto px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-4 focus:ring-gray-500/50 transition-all text-sm sm:text-base"
+                  >
+                    Voltar
+                  </button>
+                  
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full flex-1 px-4 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg sm:rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 focus:ring-4 focus:ring-purple-500/50 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm sm:text-base"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                        Criando conta...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                        Criar conta
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+
+          </form>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            Já tem uma conta?{" "}
+            <Link 
+              href="/login" 
+              className="font-medium text-purple-600 hover:text-purple-500 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
+            >
+              Faça login
+            </Link>
+          </p>
         </div>
       </div>
     </div>
